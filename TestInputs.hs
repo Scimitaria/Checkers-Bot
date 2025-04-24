@@ -30,7 +30,6 @@ jumpGame = (Black,whitePieces++blackPieces,50)
                          ((7,7),(False,Black)),((5,7),(False,Black)),((3,7),(False,Black)),((1,7),(False,Black)),
                          ((8,6),(False,Black)),((6,6),(False,Black)),((2,6),(False,Black)),
                          ((7,5),(False,Black))]
-
 jumpGameW :: Game
 jumpGameW = (White,whitePieces++blackPieces,50)
     where whitePieces = [((1,1),(False,White)),((3,1),(False,White)),((5,1),(False,White)),((7,1),(False,White)),
@@ -44,9 +43,10 @@ jumpGameW = (White,whitePieces++blackPieces,50)
 
 kingGame :: Game
 kingGame = (White,[((7,7),(False,White)),((2,2),(False,Black))],50)
-
 kingGameB :: Game
 kingGameB = (Black,[((7,7),(False,White)),((2,2),(False,Black))],50)
 
 kingedGame :: Game
-kingedGame = (White,[((7,7),(True,White)),((2,2),(True,Black))],50)
+kingedGame = (White,[((3,3),(True,White)),((4,4),(True,Black))],50)
+kingedGame1 :: Game
+kingedGame1 = (Black,[((3,3),(True,Black)),((4,4),(True,White))],50)

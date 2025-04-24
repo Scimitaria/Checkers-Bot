@@ -34,25 +34,29 @@ oppositeTeam Black = White
 
 canJump :: Game -> Piece -> Position -> Bool
 canJump game ((x,y),(king,team)) new =
-    if      (new `elem` [(x+1,y+1),(x-1,y+1)])&&(team==White) then
-        case getPiece game new of
-            Just (_,Black) -> True
-            _ -> False
-    else if (new `elem` [(x-1,y-1),(x+1,y-1)])&&(team==Black) then
-        case getPiece game new of
-            Just (_,White) -> True
-            _ -> False
+    if (new `elem` [(x+1,y+1),(x-1,y+1)])&&((team==White)||king)||
+       (new `elem` [(x-1,y-1),(x+1,y-1)])&&((team==Black)||king) then
+       let op = oppositeTeam team
+       in case getPiece game new of
+           Just (_,op) -> True
+           _ -> False
     else False
 canMake :: Game -> Piece -> Position -> Bool
 canMake game@(turn,pieces,_) piece@(pos@(x1,y1),(king,team)) newPos =
     if (not $ inBounds newPos)||(not isEmpty) then False else
     case (turn,team) of
-      (White,White) -> (newPos `elem` [(x1+1,y1+1),(x1-1,y1+1)])||         --regular move
-                       (newPos == (x1+2,y1+2))&&(canJump game piece (x1+1,y1+1))|| --jump
-                       (newPos == (x1-2,y1+2))&&(canJump game piece (x1-1,y1+1))   --jump
-      (Black,Black) -> (newPos `elem` [(x1-1,y1-1),(x1+1,y1-1)])||         --regular move
-                       (newPos == (x1-2,y1-2))&&(canJump game piece (x1-1,y1-1))|| --jump
-                       (newPos == (x1+2,y1-2))&&(canJump game piece (x1+1,y1-1))   --jump
+      (White,White) -> let k = king&&((newPos==(x1-1,y1-1))||(newPos==(x1+1,y1-1)))        --backwards move
+                       in  k||((newPos `elem` [(x1+1,y1+1),(x1-1,y1+1)])||                  --regular move
+                           (newPos==(x1+2,y1+2))&&(canJump game piece (x1+1,y1+1))||        --jump
+                           (newPos==(x1-2,y1+2))&&(canJump game piece (x1-1,y1+1)))||       --jump
+                           king&&((newPos==(x1-2,y1-2))&&(canJump game piece (x1-1,y1-1))|| --backwards jump
+                           (newPos==(x1+2,y1-2))&&(canJump game piece (x1+1,y1-1)))         --backwards jump
+      (Black,Black) -> let k = king&&((newPos==(x1+1,y1+1))||(newPos==(x1-1,y1+1)))         --backwards move
+                       in  k||(newPos `elem` [(x1-1,y1-1),(x1+1,y1-1)])||                   --regular move
+                           (newPos==(x1-2,y1-2))&&(canJump game piece (x1-1,y1-1))||        --jump
+                           (newPos==(x1+2,y1-2))&&(canJump game piece (x1+1,y1-1))||        --jump
+                           king&&((newPos==(x1+2,y1+2))&&(canJump game piece (x1+1,y1+1))|| --backwards jump
+                           (newPos==(x1-2,y1+2))&&(canJump game piece (x1-1,y1+1)))         --backwards jump
       (_,_) -> False
     where isEmpty = isNothing $ getPiece game newPos
           inBounds :: Position -> Bool
