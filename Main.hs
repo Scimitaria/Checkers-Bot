@@ -28,4 +28,4 @@ main = do
     if (Help `elem` flags) || (not $ null errors)
     then putStrLn $ usageInfo "Checkers [options] [filename] checkers game." options
     else if Test `elem` flags then runTests 1 True
-    else return()
+    else printGame jumpGame
