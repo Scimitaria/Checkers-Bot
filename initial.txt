@@ -1,0 +1,3 @@
+w
+100
+wfa1 wfc1 wfe1 wfg1 wfb2 wfd2 wff2 wfh2 wfa3 wfc3 wfe3 wfg3 bfh8 bff8 bfd8 bfb8 bfg7 bfe7 bfc7 bfa7 bfh6 bff6 bfd6 bfb6

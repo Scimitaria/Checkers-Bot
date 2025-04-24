@@ -1,10 +1,13 @@
 module Main where
 import Checkers
+import Parsing
 import Testing
 import TestInputs
 import System.IO
 import System.Environment
 import System.Console.GetOpt
+import Data.Maybe
+import Text.Read
 
 data Flag = Winner | Depth String | MoveFl String | Verbose | Interactive 
           | Interactive2p | Hard | Cheats | Help | Test  deriving (Show, Eq)
@@ -28,4 +31,13 @@ main = do
     if (Help `elem` flags) || (not $ null errors)
     then putStrLn $ usageInfo "Checkers [options] [filename] checkers game." options
     else if Test `elem` flags then runTests 1 True
-    else printGame kingedGame1
+    else do let fName = if (null args)||(null inputs) then "initial.txt" else head inputs
+            let getDepth :: [Flag] -> Maybe Int
+                getDepth [] = Just 3
+                getDepth (Depth d:_) = readMaybe d
+                getDepth (_:fs) = getDepth fs
+            contents <- readFile fName
+            case (readGame contents, getDepth flags) of
+              (Nothing, _) -> putStrLn "Error 404: Game not found"
+              (game, Nothing) -> putStrLn "Error 404: Depth not found"
+              (Just game,Just depth) -> printGame game--dispatch flags game depth
