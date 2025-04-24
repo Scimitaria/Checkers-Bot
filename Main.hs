@@ -1,6 +1,8 @@
 module Main where
 import Checkers
+import TestInputs
+import System.IO
 
 main :: IO()
 main = do
-    return ()
+    putStrLn(toString initialGame)
