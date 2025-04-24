@@ -1,6 +1,7 @@
 module Checkers where
 import Data.Maybe
 import Data.Ord
+import Debug.Trace
 --ask Fogarty about test framework usability, highlighting, error squiggles
 data Move   = Move Piece Position     deriving (Show, Eq, Ord)
 data Team   = Black | White           deriving (Show, Eq, Ord)
@@ -31,40 +32,54 @@ oppositeTeam :: Team -> Team
 oppositeTeam White = Black
 oppositeTeam Black = White
 
+canJump :: Game -> Piece -> Position -> Bool
+canJump game ((x,y),(king,team)) new =
+    if      (new `elem` [(x+1,y+1),(x-1,y+1)])&&(team==White) then
+        case getPiece game new of
+            Just (_,Black) -> True
+            _ -> False
+    else if (new `elem` [(x-1,y-1),(x+1,y-1)])&&(team==Black) then
+        case getPiece game new of
+            Just (_,White) -> True
+            _ -> False
+    else False
 canMake :: Game -> Piece -> Position -> Bool
 canMake game@(turn,pieces,_) piece@(pos@(x1,y1),(king,team)) newPos =
-    if (not $ inBounds newPos)||(not $ isEmpty game newPos) then False else
+    if (not $ inBounds newPos)||(not isEmpty) then False else
     case (turn,team) of
       (White,White) -> (newPos `elem` [(x1+1,y1+1),(x1-1,y1+1)])||         --regular move
-                       (newPos == (x1+2,y1+2))&&(not $ isEmpty game (x1+1,y1+1))|| --jump
-                       (newPos == (x1-2,y1+2))&&(not $ isEmpty game (x1-1,y1+1))   --jump
+                       (newPos == (x1+2,y1+2))&&(canJump game piece (x1+1,y1+1))|| --jump
+                       (newPos == (x1-2,y1+2))&&(canJump game piece (x1-1,y1+1))   --jump
       (Black,Black) -> (newPos `elem` [(x1-1,y1-1),(x1+1,y1-1)])||         --regular move
-                       (newPos == (x1-2,y1-2))&&(not $ isEmpty game (x1-1,y1-1))|| --jump
-                       (newPos == (x1+2,y1-2))&&(not $ isEmpty game (x1+1,y1-1))   --jump
+                       (newPos == (x1-2,y1-2))&&(canJump game piece (x1-1,y1-1))|| --jump
+                       (newPos == (x1+2,y1-2))&&(canJump game piece (x1+1,y1-1))   --jump
       (_,_) -> False
-    where isEmpty :: Game -> Position -> Bool
-          isEmpty game loc = isNothing $ getPiece game loc
+    where isEmpty = isNothing $ getPiece game newPos
           inBounds :: Position -> Bool
           inBounds (x,y) = x>0 && x<9 && y>0 && y<9
 
 move :: Game -> Move -> Maybe Game
-move game@(team,pieces,count)  mv@(Move old newPos)
-  | not $ canMake game old newPos = Nothing -- Can't make move
-  | getPieceTeam old /= team      = Nothing -- Attempted move is by the wrong team
+move game@(turn,pieces,count)  mv@(Move old newPos)
+  | not $ canMake game old newPos = Nothing --Can't make move
+  | getPieceTeam old /= turn      = Nothing --Attempted move is by the wrong team
   | otherwise = Just $ cMove game mv
-
-cMove :: Game -> Move ->  Game
-cMove game@(team,pieces,count) (Move old newPos) =
-    case (getPiece game newPos) of 
-      Just target -> (newTeam, replacePiece pieces (newPos,target) newPiece,count-1)
-      Nothing ->  newGame -- Just a move, no pieces taken
+cMove :: Game -> Move -> Game
+cMove game@(turn,pieces,count) (Move old@((x,y),(_,team)) newPos) =
+    case (turn,team) of  --jump
+      (White,White) -> if      (newPos==(x+2,y+2)) then (newTeam,whites++[p | p@(k,t) <- pieces,p /=((x+1,y+1),(fromJust $ getPiece game (x+1,y+1)))],newCount)
+                       else if (newPos==(x-2,y+2)) then (newTeam,whites++[p | p@(k,t) <- pieces,p /=((x-1,y+1),(fromJust $ getPiece game (x-1,y+1)))],newCount)
+                       else newGame
+      (Black,Black) -> if      (newPos==(x-2,y-2)) then (newTeam,[p | p@(k,t) <- pieces, p/=((x-1,y-1),(fromJust $ getPiece game (x-1,y-1)))]++blacks,newCount)
+                       else if (newPos==(x+2,y-2)) then (newTeam,[p | p@(k,t) <- pieces, p/=((x+1,y-1),(fromJust $ getPiece game (x+1,y-1)))]++blacks,newCount)
+                       else newGame
+      (_,_) -> newGame
     where whites = getTeamPieces game White
           blacks = getTeamPieces game Black
           newPiece = promote (newPos,(isKing old,getPieceTeam old))
-          newGame@(newTeam, pieces,newCount) = 
-              if old `elem` whites 
-                then (Black, replacePiece whites old newPiece++blacks,count-1) 
-                else (White, whites++replacePiece blacks old newPiece,count-1)
+          newGame@(newTeam,pieces,newCount) = 
+              if turn == White
+                then (Black,replacePiece whites old newPiece++blacks,count-1) 
+                else (White,whites++replacePiece blacks old newPiece,count-1)
           replacePiece :: [Piece] -> Piece -> Piece -> [Piece]
           replacePiece pieces old new = new:[piece | piece <- pieces, piece /= old]
           promote :: Piece -> Piece
@@ -81,5 +96,7 @@ toString game = unlines $ boardRows ++ [footer]
           footer = "  a b c d e f g h" 
           boardRows = [rowString y game | y <- [8,7..1]] 
           showPiece :: (King,Team) -> String
-          showPiece (_,Black) = "○"
-          showPiece (_,White) = "●"
+          showPiece (True,Black) = "⦾"
+          showPiece (True,White) = "⦿"
+          showPiece (_,Black)    = "○"
+          showPiece (_,White)    = "●"
