@@ -1,8 +1,9 @@
 module Checkers where
-import Data.Maybe
 import Data.Ord
-import Debug.Trace
---ask Fogarty about test framework usability, highlighting, error squiggles
+import Data.Maybe
+import Data.List
+import Data.List.Split
+
 data Move   = Move Piece Position     deriving (Show, Eq, Ord)
 data Team   = Black | White           deriving (Show, Eq, Ord)
 data Winner = Victor Team | Stalemate deriving (Show, Eq)
@@ -70,11 +71,11 @@ move game@(turn,pieces,count)  mv@(Move old newPos)
 cMove :: Game -> Move -> Game
 cMove game@(turn,pieces,count) (Move old@((x,y),(_,team)) newPos) =
     case (turn,team) of  --jump
-      (White,White) -> if      (newPos==(x+2,y+2)) then (newTeam,whites++[p | p@(k,t) <- pieces,p /=((x+1,y+1),(fromJust $ getPiece game (x+1,y+1)))],newCount)
-                       else if (newPos==(x-2,y+2)) then (newTeam,whites++[p | p@(k,t) <- pieces,p /=((x-1,y+1),(fromJust $ getPiece game (x-1,y+1)))],newCount)
+      (White,White) -> if      (newPos==(x+2,y+2)) then (newTeam,[w | w <- whites, w/=old]++[p | p@(k,t) <- pieces, p/=((x+1,y+1),(fromJust $ getPiece game (x+1,y+1)))],newCount)
+                       else if (newPos==(x-2,y+2)) then (newTeam,[w | w <- whites, w/=old]++[p | p@(k,t) <- pieces, p/=((x-1,y+1),(fromJust $ getPiece game (x-1,y+1)))],newCount)
                        else newGame
-      (Black,Black) -> if      (newPos==(x-2,y-2)) then (newTeam,[p | p@(k,t) <- pieces, p/=((x-1,y-1),(fromJust $ getPiece game (x-1,y-1)))]++blacks,newCount)
-                       else if (newPos==(x+2,y-2)) then (newTeam,[p | p@(k,t) <- pieces, p/=((x+1,y-1),(fromJust $ getPiece game (x+1,y-1)))]++blacks,newCount)
+      (Black,Black) -> if      (newPos==(x-2,y-2)) then (newTeam,[p | p@(k,t) <- pieces, p/=((x-1,y-1),(fromJust $ getPiece game (x-1,y-1)))]++[b | b <- blacks, b/=old],newCount)
+                       else if (newPos==(x+2,y-2)) then (newTeam,[p | p@(k,t) <- pieces, p/=((x+1,y-1),(fromJust $ getPiece game (x+1,y-1)))]++[b | b <- blacks, b/=old],newCount)
                        else newGame
       (_,_) -> newGame
     where whites = getTeamPieces game White
@@ -90,6 +91,19 @@ cMove game@(turn,pieces,count) (Move old@((x,y),(_,team)) newPos) =
           promote ((x,8),(False,White)) = ((x,8),(True,White))
           promote ((x,1),(False,Black)) = ((x,1),(True,Black))
           promote piece = piece
+ 
+possibleGameMoves :: Game -> [Move]
+possibleGameMoves game@(turn,pieces,_) = 
+    concat [possibleMoves game p | p <- teamPieces]
+      where whites = getTeamPieces game White
+            blacks = getTeamPieces game Black
+            teamPieces = if turn == White then whites else blacks
+            possibleMoves :: Game -> Piece -> [Move]
+            possibleMoves game p =
+                let (x,y) = getPosition(p)
+                    moves = [(x+1,x+1),(x-1,x+1),(x+1,x-1),(x-1,x-1),
+                             (x+2,x+2),(x-2,x+2),(x+2,x-2),(x-2,x-2)]
+                in  [Move p m | m <- moves, canMake game p m]
 
 printGame :: Game -> IO()
 printGame game = putStrLn $ toString game

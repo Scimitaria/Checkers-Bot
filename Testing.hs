@@ -60,7 +60,7 @@ tree = describe "Checkers-Bot" $
         testCanMake
         testMove
 
-runTests :: Int -> Bool -> IO ()--how do test io
+runTests :: Int -> Bool -> IO ()
 runTests verb force = do
         let a = runGrader tree
         format <- makeFormat verb force "projectDesc.yaml"
